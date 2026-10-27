@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+dist-ssr
+coverage
+*.local
+
+/cypress/videos/
+/cypress/screenshots/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo
+
+# Vite 启动时生成的临时文件（你目录里已经躺了两个了）
+vite.config.ts.timestamp-*.mjs
+
+# ESLint 缓存
+.eslintcache
+
+# Windows 系统垃圾（你只写了 Mac 的 .DS_Store）
+Thumbs.db
+Desktop.ini
+
+# Vite 依赖预构建缓存（保险）
+.vite/
+

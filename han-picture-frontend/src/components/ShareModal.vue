@@ -1,0 +1,52 @@
+<template>
+  <div>
+    <a-modal v-model:open="open"  title="分享图片" :footer="false" @cancel="closeModal">
+      <h4>复制分享链接</h4>
+      <a-typography-link copyable>
+        {{ link }}
+      </a-typography-link>
+      <div style="margin-bottom: 16px" />
+      <h4>手机扫码查看</h4>
+      <a-qrcode :value="link"/>
+    </a-modal>
+  </div>
+</template>
+<script lang="ts" setup>
+import { ref } from 'vue';
+import { defineExpose } from "vue";
+/**
+ * 定义组件属性类型
+ */
+interface Props {
+  title: string
+  link: string
+}
+
+/**
+ * 给组件指定初始值
+ */
+const props = withDefaults(defineProps<Props>(), {
+  title: () => '分享',
+  link: () => 'https://www.bilibili.com',
+})
+
+
+// 是否可见
+const open = ref<boolean>(false);
+
+// 打开弹窗
+const openModal = () => {
+  open.value = true;
+};
+
+// 暴露函数给父组件，让父组件控制
+defineExpose({
+  openModal,
+});
+
+// 关闭弹窗
+const closeModal = () => {
+  open.value = false
+}
+
+</script>
