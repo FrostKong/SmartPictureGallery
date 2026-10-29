@@ -65,8 +65,10 @@ const createTask = async () => {
     pictureId: props.picture.id,
     // 可以根据需要设置扩图参数
     parameters: {
-      xScale: 2,
-      yScale: 2,
+      topScale: 1.5,
+      bottomScale: 1.5,
+      leftScale: 1.5,
+      rightScale: 1.5,
     },
   })
   if (res.data.code === 0 && res.data.data) {
@@ -104,10 +106,14 @@ const startPolling = () => {
         const taskResult = res.data.data.output
         if (taskResult.taskStatus === 'SUCCEEDED') {
           message.success('扩图任务成功')
-          resultImageUrl.value = taskResult.outputImageUrl
+          resultImageUrl.value = taskResult?.results?.[0]?.url
           clearPolling()
         } else if (taskResult.taskStatus === 'FAILED') {
-          message.error('扩图任务失败')
+          // 优先展示第三方返回的错误信息
+          const errMsg = taskResult.message || '扩图任务失败'
+          // 可选：把第三方code也带上，方便调试
+          console.error("扩图失败，错误码：", taskResult.code, "原因：", taskResult.message)
+          message.error(`扩图任务失败：${errMsg}`)
           clearPolling()
         }
       }

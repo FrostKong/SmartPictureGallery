@@ -22,11 +22,15 @@ public class AliYunAiApi {
     // 读取配置文件
     @Value("${aliYunAi.apiKey}")
     private String apiKey;
-    // 创建任务地址
-    public static final String CREATE_OUT_PAINTING_TASK_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/image2image/out-painting";
 
-    // 查询任务状态
-    public static final String GET_OUT_PAINTING_TASK_URL = "https://dashscope.aliyuncs.com/api/v1/tasks/%s";
+    // 创建任务地址（万相通用图像编辑 wanx2.1-imageedit，扩图）
+    // 文档：https://help.aliyun.com/zh/model-studio/wanx-image-edit-api-reference
+    @Value("https://${aliYunAi.workSpaceId}.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/image2image/image-synthesis")
+    private String CREATE_OUT_PAINTING_TASK_URL;
+
+    // 查询任务状态地址
+    @Value("https://${aliYunAi.workSpaceId}.cn-beijing.maas.aliyuncs.com/api/v1/tasks/%s")
+    private String GET_OUT_PAINTING_TASK_URL;
 
     /**
      * 创建任务

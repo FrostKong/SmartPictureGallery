@@ -198,6 +198,7 @@ declare namespace API {
   type GetOutPaintingTaskResponse = {
     output?: Output1
     requestId?: string
+    usage?: Usage
   }
 
   type getPictureByIdUsingGETParams = {
@@ -260,7 +261,7 @@ declare namespace API {
     code?: string
     endTime?: string
     message?: string
-    outputImageUrl?: string
+    results?: ResultItem[]
     scheduledTime?: string
     submitTime?: string
     taskId?: string
@@ -309,17 +310,13 @@ declare namespace API {
   }
 
   type Parameters = {
-    addWatermark?: boolean
-    angle?: number
-    bestQuality?: boolean
-    bottomOffset?: number
-    leftOffset?: number
-    limitImageSize?: boolean
-    outputRatio?: string
-    rightOffset?: number
-    topOffset?: number
-    xScale?: number
-    yScale?: number
+    bottomScale?: number
+    leftScale?: number
+    n?: number
+    rightScale?: number
+    seed?: number
+    topScale?: number
+    watermark?: boolean
   }
 
   type Picture = {
@@ -443,6 +440,12 @@ declare namespace API {
     url?: string
     user?: UserVO
     userId?: number
+  }
+
+  type ResultItem = {
+    code?: string
+    message?: string
+    url?: string
   }
 
   type SearchPictureByColorRequest = {
@@ -646,6 +649,10 @@ declare namespace API {
     id?: number
     picName?: string
     spaceId?: number
+  }
+
+  type Usage = {
+    imageCount?: number
   }
 
   type User = {
