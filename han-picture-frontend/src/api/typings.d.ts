@@ -119,6 +119,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePageVideoVO_ = {
+    code?: number
+    data?: PageVideoVO_
+    message?: string
+  }
+
   type BaseResponsePicture_ = {
     code?: number
     data?: Picture
@@ -179,6 +185,18 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseVideoTaskVO_ = {
+    code?: number
+    data?: VideoTaskVO
+    message?: string
+  }
+
+  type BaseResponseVideoVO_ = {
+    code?: number
+    data?: VideoVO
+    message?: string
+  }
+
   type CreateOutPaintingTaskResponse = {
     code?: string
     message?: string
@@ -192,6 +210,11 @@ declare namespace API {
   }
 
   type DeleteRequest = {
+    id?: number
+  }
+
+  type downloadVideoUsingGETParams = {
+    /** id */
     id?: number
   }
 
@@ -226,12 +249,22 @@ declare namespace API {
     id?: number
   }
 
+  type getTaskUsingGETParams = {
+    /** id */
+    id?: number
+  }
+
   type getUserByIdUsingGETParams = {
     /** id */
     id?: number
   }
 
   type getUserVOByIdUsingGETParams = {
+    /** id */
+    id?: number
+  }
+
+  type getVideoVOByIdUsingGETParams = {
     /** id */
     id?: number
   }
@@ -305,6 +338,14 @@ declare namespace API {
     current?: number
     pages?: number
     records?: UserVO[]
+    size?: number
+    total?: number
+  }
+
+  type PageVideoVO_ = {
+    current?: number
+    pages?: number
+    records?: VideoVO[]
     size?: number
     total?: number
   }
@@ -651,6 +692,12 @@ declare namespace API {
     spaceId?: number
   }
 
+  type uploadVideoUsingPOSTParams = {
+    id?: number
+    spaceId?: number
+    videoName?: string
+  }
+
   type Usage = {
     imageCount?: number
   }
@@ -716,5 +763,72 @@ declare namespace API {
     userName?: string
     userProfile?: string
     userRole?: string
+  }
+
+  type VideoEditRequest = {
+    category?: string
+    id?: number
+    introduction?: string
+    name?: string
+    tags?: string[]
+  }
+
+  type VideoQueryRequest = {
+    category?: string
+    current?: number
+    id?: number
+    introduction?: string
+    name?: string
+    nullSpaceId?: boolean
+    pageSize?: number
+    reviewStatus?: number
+    searchText?: string
+    sortField?: string
+    sortOrder?: string
+    spaceId?: number
+    tags?: string[]
+    userId?: number
+    videoFormat?: string
+  }
+
+  type VideoTaskCreateRequest = {
+    prompt?: string
+    videoId?: number
+  }
+
+  type VideoTaskVO = {
+    createTime?: string
+    errorMessage?: string
+    id?: number
+    prompt?: string
+    resultJson?: string
+    resultVideoUrl?: string
+    state?: number
+    stateText?: string
+    updateTime?: string
+    userId?: number
+    videoId?: number
+  }
+
+  type VideoVO = {
+    category?: string
+    coverUrl?: string
+    createTime?: string
+    duration?: number
+    editTime?: string
+    height?: number
+    id?: number
+    introduction?: string
+    name?: string
+    reviewStatus?: number
+    spaceId?: number
+    tags?: string[]
+    updateTime?: string
+    url?: string
+    user?: UserVO
+    userId?: number
+    videoFormat?: string
+    videoSize?: number
+    width?: number
   }
 }

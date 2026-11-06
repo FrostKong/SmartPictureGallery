@@ -9,6 +9,8 @@ import * as spaceController from './spaceController'
 import * as spaceAnalyzeController from './spaceAnalyzeController'
 import * as spaceUserController from './spaceUserController'
 import * as userController from './userController'
+import * as videoController from './videoController'
+import * as videoTaskController from './videoTaskController'
 export default {
   fileController,
   mainController,
@@ -17,4 +19,6 @@ export default {
   spaceAnalyzeController,
   spaceUserController,
   userController,
+  videoController,
+  videoTaskController,
 }

@@ -11,6 +11,11 @@ spring:
     active: local
   application:
     name: han-picture-backend
+  # 文件上传大小限制（视频 MVP：单文件上限 100MB）
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 110MB
   # session 配置
   session:
     store-type: redis

@@ -112,4 +112,6 @@ create table if not exists space_user
     INDEX idx_userId (userId)                       -- 提升按用户查询的性能
 ) comment '空间用户关联' collate = utf8mb4_unicode_ci;
 
+-- 视频模块（video / video_task）建表语句见 sql/video.sql，单独执行即可。
+
 
