@@ -9,6 +9,7 @@ import com.hans.hanpicturebackend.execption.BusinessException;
 import com.hans.hanpicturebackend.execption.ErrorCode;
 import com.hans.hanpicturebackend.execption.ThrowUtils;
 import com.hans.hanpicturebackend.manager.CosManager;
+import com.hans.hanpicturebackend.model.dto.video.VideoCoverRequest;
 import com.hans.hanpicturebackend.model.dto.video.VideoEditRequest;
 import com.hans.hanpicturebackend.model.dto.video.VideoQueryRequest;
 import com.hans.hanpicturebackend.model.dto.video.VideoUploadRequest;
@@ -93,9 +94,28 @@ public class VideoController {
         long size = videoQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 公共图库视图（未指定空间）只展示已发布的视频，避免「我的空间」里的草稿混进广场。
+        // 不做审核：reviewStatus 不参与公共列表过滤，发布动作由 /video/publish 表达。
+        if (videoQueryRequest.getSpaceId() == null) {
+            videoQueryRequest.setNullSpaceId(true);
+        }
         Page<Video> videoPage = videoService.page(new Page<>(current, size),
                 videoService.getQueryWrapper(videoQueryRequest));
         return ResultUtils.success(videoService.getVideoVOPage(videoPage));
+    }
+
+    /**
+     * 发布视频：把 spaceId 置空，从「我的空间草稿」进入公共图库。
+     * 当前不做审核，因此不修改 reviewStatus；COS 对象无需搬目录，url 仍是绝对地址。
+     */
+    @PostMapping("/publish")
+    public BaseResponse<Boolean> publishVideo(@RequestBody DeleteRequest publishRequest,
+                                              HttpServletRequest request) {
+        ThrowUtils.throwIf(publishRequest == null || publishRequest.getId() == null || publishRequest.getId() <= 0,
+                ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        videoService.publishVideo(publishRequest.getId(), loginUser);
+        return ResultUtils.success(true);
     }
 
     /**
@@ -107,6 +127,20 @@ public class VideoController {
         User loginUser = userService.getLoginUser(request);
         videoService.editVideo(videoEditRequest, loginUser);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 按时间点截帧设封面：CI 同步截帧 → 写 COS → 回写 coverUrl，返回新的封面绝对地址。
+     * 前端在上传完成后拖动播放器，把 <video>.currentTime 作为 time 传上来。
+     */
+    @PostMapping("/cover/snapshot")
+    public BaseResponse<String> snapshotVideoCover(@RequestBody VideoCoverRequest coverRequest,
+                                                   HttpServletRequest request) {
+        ThrowUtils.throwIf(coverRequest == null || coverRequest.getId() == null
+                || coverRequest.getTime() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        String coverUrl = videoService.snapshotCover(coverRequest.getId(), coverRequest.getTime(), loginUser);
+        return ResultUtils.success(coverUrl);
     }
 
     /**

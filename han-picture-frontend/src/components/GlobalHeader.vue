@@ -53,7 +53,7 @@
 <script lang="ts" setup>
 import { computed, h, ref } from 'vue'
 import { HomeOutlined } from '@ant-design/icons-vue'
-import { MenuProps, message } from 'ant-design-vue'
+import { message, type MenuProps } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { UserOutlined,LogoutOutlined } from '@ant-design/icons-vue'
@@ -78,14 +78,14 @@ const originItems = [
     title: '用户管理',
   },
   {
-    key: 'others',
-    label: h('a', { href: 'https://www.bilibili.com', target: '_blank' }, 'b站视频观看'),
-    title: 'b站视频观看',
-  },
-  {
     key: '/add_picture',
     label: '创建图片',
     title: '创建图片',
+  },
+  {
+    key: '/add_video',
+    label: '创建视频',
+    title: '创建视频',
   },
   {
     key: '/admin/pictureManage',
@@ -102,6 +102,9 @@ const originItems = [
 // 过滤菜单项
 const filterMenus = (menus = [] as MenuProps['items']) => {
   return menus?.filter((menu) => {
+    if (!menu) {
+      return false
+    }
     if (String(menu.key).startsWith('/admin')) {
       const loginUser = loginUserStore.loginUser
       if (!loginUser || loginUser.userRole !== 'admin') {

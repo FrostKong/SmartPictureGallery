@@ -5,16 +5,20 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hans.hanpicturebackend.config.CosClientConfig;
 import com.hans.hanpicturebackend.execption.BusinessException;
 import com.hans.hanpicturebackend.execption.ErrorCode;
 import com.hans.hanpicturebackend.execption.ThrowUtils;
+import com.hans.hanpicturebackend.manager.CiMediaManager;
 import com.hans.hanpicturebackend.manager.CosManager;
 import com.hans.hanpicturebackend.manager.upload.FileVideoUpload;
 import com.hans.hanpicturebackend.mapper.VideoMapper;
 import com.hans.hanpicturebackend.model.dto.file.UploadVideoResult;
+import com.hans.hanpicturebackend.model.dto.file.VideoMediaInfo;
 import com.hans.hanpicturebackend.model.dto.video.VideoEditRequest;
 import com.hans.hanpicturebackend.model.dto.video.VideoQueryRequest;
 import com.hans.hanpicturebackend.model.dto.video.VideoUploadRequest;
@@ -27,6 +31,7 @@ import com.hans.hanpicturebackend.service.UserService;
 import com.hans.hanpicturebackend.service.VideoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +54,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     private FileVideoUpload fileVideoUpload;
 
     @Resource
+    private CiMediaManager ciMediaManager;
+
+    @Resource
     private UserService userService;
 
     @Resource
@@ -56,6 +64,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Resource
     private CosClientConfig cosClientConfig;
+
+    /**
+     * 数据万象总开关：关闭后上传不再同步回填元信息，也不允许截帧设封面。
+     */
+    @Value("${ci.media-process.enabled:true}")
+    private boolean ciEnabled;
 
     @Override
     public VideoVO uploadVideo(MultipartFile multipartFile, VideoUploadRequest videoUploadRequest, User loginUser) {
@@ -99,6 +113,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (videoId != null) {
             video.setId(videoId);
             video.setEditTime(new Date());
+            // 重新上传后旧封面已不对应新视频；updateById 会跳过 null，这里显式置空
+            video.setCoverUrl("");
         }
         this.fillReviewParams(video, loginUser);
 
@@ -109,6 +125,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (oldVideo != null && StrUtil.isNotBlank(oldVideo.getUrl())
                 && !oldVideo.getUrl().equals(video.getUrl())) {
             this.clearVideoFile(oldVideo);
+        }
+        // 同步回填元信息（CI avinfo），失败只记日志，不影响上传结果；
+        // 封面不再自动生成，改由用户在上传页拖动播放进度后主动选一帧
+        this.fillMediaInfoSync(video);
+        if (oldVideo != null && StrUtil.isNotBlank(oldVideo.getCoverUrl())) {
+            this.clearVideoCover(oldVideo.getCoverUrl());
         }
         return VideoVO.objToVo(video);
     }
@@ -204,6 +226,21 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     }
 
     @Override
+    public void publishVideo(long videoId, User loginUser) {
+        ThrowUtils.throwIf(videoId <= 0, ErrorCode.PARAMS_ERROR);
+        Video oldVideo = this.getById(videoId);
+        ThrowUtils.throwIf(oldVideo == null, ErrorCode.NOT_FOUND_ERROR);
+        this.checkVideoAuth(loginUser, oldVideo);
+        // updateById 会跳过 null 字段，置空 spaceId 必须用 UpdateWrapper 显式 set
+        UpdateWrapper<Video> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", videoId)
+                .set("spaceId", null)
+                .set("editTime", new Date());
+        boolean result = this.update(updateWrapper);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "发布失败");
+    }
+
+    @Override
     public void editVideo(VideoEditRequest videoEditRequest, User loginUser) {
         ThrowUtils.throwIf(videoEditRequest == null || videoEditRequest.getId() == null, ErrorCode.PARAMS_ERROR);
         Video video = new Video();
@@ -243,6 +280,8 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             return;
         }
         cosManager.deleteObject(this.getCosKey(url));
+        // 封面是独立对象，随视频一起清理，避免 COS 里攒垃圾
+        this.clearVideoCover(oldVideo.getCoverUrl());
     }
 
     @Override
@@ -265,6 +304,94 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             video.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
         } else {
             video.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
+        }
+    }
+
+    @Override
+    public String snapshotCover(long videoId, double time, User loginUser) {
+        ThrowUtils.throwIf(videoId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(Double.isNaN(time) || Double.isInfinite(time) || time < 0,
+                ErrorCode.PARAMS_ERROR, "截帧时间不合法");
+        ThrowUtils.throwIf(!ciEnabled, ErrorCode.OPERATION_ERROR, "数据万象未启用，无法生成封面");
+        Video video = this.getById(videoId);
+        ThrowUtils.throwIf(video == null, ErrorCode.NOT_FOUND_ERROR, "视频不存在");
+        this.checkVideoAuth(loginUser, video);
+        if (video.getDuration() != null && video.getDuration() > 0) {
+            ThrowUtils.throwIf(time > video.getDuration(), ErrorCode.PARAMS_ERROR, "截帧时间超出视频时长");
+        }
+
+        String videoKey = this.getCosKey(video.getUrl());
+        // CI 只返回图片流，落盘由我们自己保证：写成功了才回写 coverUrl
+        byte[] imageBytes = ciMediaManager.snapshot(videoKey, time);
+        String coverKey = buildCoverKey(videoKey);
+        cosManager.putObject(coverKey, imageBytes, "image/jpeg");
+        String coverUrl = cosClientConfig.getHost() + "/" + coverKey;
+
+        Video update = new Video();
+        update.setId(videoId);
+        update.setCoverUrl(coverUrl);
+        update.setEditTime(new Date());
+        ThrowUtils.throwIf(!this.updateById(update), ErrorCode.OPERATION_ERROR, "封面保存失败");
+        // 重选封面时清掉上一张，避免 COS 里堆积；同一 key 不覆盖写，防浏览器/CDN 缓存
+        this.clearVideoCover(video.getCoverUrl());
+        return coverUrl;
+    }
+
+    /**
+     * 上传后同步回填 duration / width / height。
+     * 同步而非异步：avinfo 是一次 GET 直接返回，不需要 jobId / 回调 / 轮询；
+     * 失败只记日志，绝不拖垮上传主流程。
+     */
+    private void fillMediaInfoSync(Video video) {
+        if (!ciEnabled) {
+            return;
+        }
+        try {
+            VideoMediaInfo info = ciMediaManager.getMediaInfo(this.getCosKey(video.getUrl()));
+            if (info == null) {
+                return;
+            }
+            // 用 LambdaUpdateWrapper 显式 set：重新上传时旧值也要能被 null 清掉，
+            // 而 updateById 会跳过 null 字段
+            LambdaUpdateWrapper<Video> wrapper = new LambdaUpdateWrapper<>();
+            wrapper.eq(Video::getId, video.getId())
+                    .set(Video::getDuration, info.getDuration())
+                    .set(Video::getWidth, info.getWidth())
+                    .set(Video::getHeight, info.getHeight());
+            this.update(wrapper);
+            video.setDuration(info.getDuration());
+            video.setWidth(info.getWidth());
+            video.setHeight(info.getHeight());
+        } catch (Exception e) {
+            log.warn("视频元信息同步回填失败，videoId={}, err={}", video.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * 封面与视频同目录，带时间戳。命名/目录后续可再细化，此处先固定一个不冲突的位置。
+     */
+    private String buildCoverKey(String videoKey) {
+        int dotIndex = videoKey.lastIndexOf('.');
+        String base = dotIndex > 0 ? videoKey.substring(0, dotIndex) : videoKey;
+        return base + "_cover_" + System.currentTimeMillis() + ".jpg";
+    }
+
+    /**
+     * 删除旧的封面对象。只处理本项目 host 下的地址，避免误删外部 url；
+     * 失败只记日志，不影响主流程。
+     */
+    private void clearVideoCover(String coverUrl) {
+        if (StrUtil.isBlank(coverUrl)) {
+            return;
+        }
+        String host = cosClientConfig.getHost();
+        if (StrUtil.isBlank(host) || !coverUrl.startsWith(host)) {
+            return;
+        }
+        try {
+            cosManager.deleteObject(this.getCosKey(coverUrl));
+        } catch (Exception e) {
+            log.warn("清理旧封面失败，url={}, err={}", coverUrl, e.getMessage());
         }
     }
 }

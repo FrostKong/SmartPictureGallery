@@ -89,7 +89,7 @@
         </a-card>
       </a-col>
     </a-row>
-    <ShareModal ref="shareModalRef" :link="shareLink"/>
+    <ShareModal ref="shareModalRef" title="分享图片" :link="shareLink" />
   </div>
 </template>
 
@@ -188,7 +188,7 @@ const doDelete = async () => {
 
 // 分享
 const shareModalRef = ref()
-const shareLink = ref<string>()
+const shareLink = ref<string>('')
 const doShare = () => {
   shareLink.value = `${window.location.protocol}//${window.location.host}/picture/${picture.value.id}`
   if(shareModalRef.value) {

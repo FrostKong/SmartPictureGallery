@@ -2,6 +2,21 @@
 /* eslint-disable */
 import request from '@/request'
 
+/** snapshotVideoCover POST /api/video/cover/snapshot */
+export async function snapshotVideoCoverUsingPost(
+  body: API.VideoCoverRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseString_>('/api/video/cover/snapshot', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** deleteVideo POST /api/video/delete */
 export async function deleteVideoUsingPost(
   body: API.DeleteRequest,
@@ -68,6 +83,21 @@ export async function listVideoVoByPageUsingPost(
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResponsePageVideoVO_>('/api/video/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** publishVideo POST /api/video/publish */
+export async function publishVideoUsingPost(
+  body: API.DeleteRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean_>('/api/video/publish', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

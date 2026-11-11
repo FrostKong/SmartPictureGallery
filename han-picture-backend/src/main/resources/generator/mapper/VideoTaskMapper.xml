@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hans.hanpicturebackend.mapper.VideoTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.hans.hanpicturebackend.model.entity.VideoTask">
+            <id property="id" column="id" />
+            <result property="videoId" column="videoId" />
+            <result property="userId" column="userId" />
+            <result property="prompt" column="prompt" />
+            <result property="state" column="state" />
+            <result property="resultVideoUrl" column="resultVideoUrl" />
+            <result property="resultJson" column="resultJson" />
+            <result property="errorMessage" column="errorMessage" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+            <result property="isDelete" column="isDelete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,videoId,userId,prompt,state,resultVideoUrl,
+        resultJson,errorMessage,createTime,updateTime,isDelete
+    </sql>
+</mapper>

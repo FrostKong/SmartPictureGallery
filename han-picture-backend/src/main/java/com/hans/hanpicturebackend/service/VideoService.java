@@ -47,6 +47,12 @@ public interface VideoService extends IService<Video> {
     void deleteVideo(long videoId, User loginUser);
 
     /**
+     * 发布视频：把 spaceId 置空，从「我的空间草稿」变为「公共图库可见」
+     * （当前不做审核，reviewStatus 不参与公共列表过滤）
+     */
+    void publishVideo(long videoId, User loginUser);
+
+    /**
      * 编辑视频元数据
      */
     void editVideo(VideoEditRequest videoEditRequest, User loginUser);
@@ -70,4 +76,14 @@ public interface VideoService extends IService<Video> {
      * 填入审核参数
      */
     void fillReviewParams(Video video, User loginUser);
+
+    /**
+     * 按时间点截帧设封面：归属校验 → CI 同步截帧 → 写 COS → 回写 coverUrl。
+     * 返回后端拼好的封面绝对地址（前端只读 url，不自行拼域名）。
+     *
+     * @param videoId   视频 id
+     * @param time      截帧时间点（秒，支持小数）
+     * @param loginUser 当前登录用户
+     */
+    String snapshotCover(long videoId, double time, User loginUser);
 }

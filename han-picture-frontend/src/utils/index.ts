@@ -12,6 +12,19 @@ export const formatSize = (size?: number) => {
 }
 
 /**
+ * 格式化视频时长（秒 -> mm:ss / hh:mm:ss）
+ */
+export const formatDuration = (seconds?: number) => {
+  if (seconds === null || seconds === undefined || seconds < 0) return '-'
+  const total = Math.floor(seconds)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const secs = total % 60
+  const pad = (num: number) => String(num).padStart(2, '0')
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${pad(minutes)}:${pad(secs)}`
+}
+
+/**
  * 下载图片
  * @param url 图片下载地址
  * @param fileName 要保存为的文件名
@@ -23,7 +36,7 @@ export function downloadImage(url?: string, fileName?: string) {
   saveAs(url, fileName)
 }
 
-export function toHexColor(input) {
+export function toHexColor(input: string) {
   // 去掉 0x 前缀
   const colorValue = input.startsWith('0x') ? input.slice(2) : input
 

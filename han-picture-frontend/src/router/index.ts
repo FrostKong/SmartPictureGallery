@@ -10,6 +10,8 @@ import AddPictureBatchView from '@/views/AddPictureBatchView.vue'
 import SpaceManageView from '@/views/admin/SpaceManageView.vue'
 import AddSpaceView from '@/views/AddSpaceView.vue'
 import MySpaceView from '@/views/MySpaceView.vue'
+import VideoDetailView from '@/views/VideoDetailView.vue'
+import AddVideoView from '@/views/AddVideoView.vue'
 import SpaceDetailView from '@/views/SpaceDetailView.vue'
 import SearchPictureView from '@/views/SearchPictureView.vue'
 import SpaceUserManageView from '@/views/admin/SpaceUserManageView.vue'
@@ -80,6 +82,17 @@ const router = createRouter({
       path: '/my_space',
       name: '我的空间',
       component: MySpaceView,
+    },
+    {
+      path: '/video/:id',
+      name: '视频详情',
+      component: VideoDetailView,
+      props: true,
+    },
+    {
+      path: '/add_video',
+      name: '创建视频',
+      component: AddVideoView,
     },
     {
       path: '/space/:id',

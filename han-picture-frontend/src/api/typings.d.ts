@@ -765,6 +765,11 @@ declare namespace API {
     userRole?: string
   }
 
+  type VideoCoverRequest = {
+    id?: number
+    time?: number
+  }
+
   type VideoEditRequest = {
     category?: string
     id?: number
